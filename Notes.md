@@ -198,3 +198,52 @@ This architecture allows developers to share code across platforms while maintai
    - Platform-specific tests in `androidTest`, `iosTest`, etc.
 
 This modular structure ensures code reusability while allowing platform-specific flexibility.
+
+## 6. What are expect/actual keywords in Kotlin Multiplatform?
+
+ Ans: In Kotlin Multiplatform, the `expect` and `actual` keywords are used to define and implement platform-specific functionality while keeping the shared code in the common module.
+
+### **`expect` Keyword**
+- Used in the **common module** to declare a platform-specific API or functionality.
+- It defines the expected behavior or contract without providing an implementation.
+- Example:
+  ```kotlin
+  // commonMain
+  expect fun getPlatformName(): String
+  ```
+
+### **`actual` Keyword**
+- Used in **platform-specific modules** to provide the actual implementation of the `expect` declaration.
+- Each platform-specific module must provide its own `actual` implementation.
+- Example:
+  ```kotlin
+  // androidMain
+  actual fun getPlatformName(): String = "Android"
+
+  // iosMain
+  actual fun getPlatformName(): String = "iOS"
+  ```
+
+### How It Works
+1. The `expect` declaration in the common module defines the API that the shared code can use.
+2. The `actual` implementations in platform-specific modules fulfill the contract for each target platform.
+
+This mechanism allows you to write shared code in the common module while handling platform-specific differences in the respective platform modules.
+
+## 7. What is Kotlin/Native?
+
+Ans: Kotlin/Native is a technology within the Kotlin ecosystem that allows Kotlin code to be compiled into native binaries, enabling it to run on platforms where a virtual machine (like the JVM) is not available. It is part of Kotlin Multiplatform and is primarily used for targeting platforms such as iOS, macOS, Windows, Linux, and embedded systems.
+
+### Key Features of Kotlin/Native:
+1. **Native Binaries**: Compiles Kotlin code into platform-specific native executables.
+2. **Interoperability**: Provides seamless interoperability with platform-specific languages like Swift/Objective-C (for iOS/macOS) and C/C++.
+3. **Garbage Collection**: Uses a custom memory management model instead of relying on JVM garbage collection.
+4. **Multithreading**: Supports multithreading with a focus on immutability and thread-local data to ensure safety.
+5. **No Virtual Machine**: Runs directly on the target platform without requiring a JVM or other runtime.
+
+### Use Cases:
+- Developing iOS applications alongside Android in a Kotlin Multiplatform project.
+- Writing cross-platform libraries or tools.
+- Targeting platforms like embedded systems or desktop environments.
+
+Kotlin/Native is powered by the LLVM compiler infrastructure, which generates highly optimized native code for the target platform.
