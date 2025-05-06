@@ -247,3 +247,248 @@ Ans: Kotlin/Native is a technology within the Kotlin ecosystem that allows Kotli
 - Targeting platforms like embedded systems or desktop environments.
 
 Kotlin/Native is powered by the LLVM compiler infrastructure, which generates highly optimized native code for the target platform.
+
+## 8. What is Kotlin Multiplatform Mobile (KMM)?
+
+  Ans: Kotlin Multiplatform Mobile (KMM) is a framework within Kotlin Multiplatform designed specifically for sharing code between Android and iOS applications. It allows developers to write common code for business logic, networking, data storage, and other shared functionality while enabling platform-specific code for UI and platform-dependent features.
+
+### Key Features of KMM:
+1. **Code Sharing**:
+   - Write shared code in the `commonMain` module for business logic, networking, and data models.
+   - Use platform-specific modules (`androidMain`, `iosMain`) for platform-dependent implementations.
+
+2. **Expect/Actual Mechanism**:
+   - Use `expect` declarations in shared code and provide `actual` implementations in platform-specific modules.
+
+3. **Interoperability**:
+   - **Android**: Interoperates seamlessly with Java and Android libraries.
+   - **iOS**: Produces native frameworks compatible with Swift and Objective-C.
+
+4. **Gradle Integration**:
+   - Configures targets, dependencies, and source sets for Android and iOS.
+
+5. **Library Support**:
+   - Supports multiplatform libraries like Ktor (networking), Kotlinx Serialization, and SQLDelight (database).
+
+6. **Native Performance**:
+   - Compiles to native binaries for iOS using Kotlin/Native and to JVM bytecode for Android.
+
+### Benefits:
+- Reduces code duplication between Android and iOS.
+- Speeds up development by reusing shared logic.
+- Ensures consistency across platforms.
+
+KMM is ideal for teams building cross-platform mobile apps while maintaining native UI and platform-specific experiences.
+
+## 9. How do you handle Database in Kotlin Multiplatform?
+
+Ans: In Kotlin Multiplatform (KMP), databases are typically handled using libraries that support multiplatform development. One of the most popular libraries for this purpose is **SQLDelight**, which provides a multiplatform SQL-based database solution. Here's how you can handle databases in KMP:
+
+---
+
+### 1. **Add SQLDelight Dependency**
+Add the SQLDelight plugin and dependencies to your `build.gradle.kts` file:
+
+```kotlin
+plugins {
+    kotlin("multiplatform")
+    id("com.squareup.sqldelight")
+}
+
+kotlin {
+    jvm()
+    ios()
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("com.squareup.sqldelight:runtime:1.5.5")
+            }
+        }
+        val androidMain by getting {
+            dependencies {
+                implementation("com.squareup.sqldelight:android-driver:1.5.5")
+            }
+        }
+        val iosMain by getting {
+            dependencies {
+                implementation("com.squareup.sqldelight:native-driver:1.5.5")
+            }
+        }
+    }
+}
+
+sqldelight {
+    database("AppDatabase") {
+        packageName = "com.example.database"
+    }
+}
+```
+
+---
+
+### 2. **Define SQL Schema**
+Create a `.sq` file (e.g., `AppDatabase.sq`) in the `commonMain` source set to define your database schema and queries:
+
+```sql
+CREATE TABLE User(
+    id INTEGER NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL
+);
+
+selectAllUsers:
+SELECT * FROM User;
+
+insertUser:
+INSERT INTO User(id, name) VALUES (?, ?);
+```
+
+---
+
+### 3. **Generate Database Code**
+SQLDelight generates type-safe Kotlin code for your database. You can access the database using the generated `AppDatabase` class.
+
+---
+
+### 4. **Initialize the Database**
+Initialize the database in platform-specific code using the appropriate driver:
+
+#### Android (`androidMain`):
+```kotlin
+import android.content.Context
+import com.example.database.AppDatabase
+import com.squareup.sqldelight.android.AndroidSqliteDriver
+
+fun createDatabase(context: Context): AppDatabase {
+    val driver = AndroidSqliteDriver(AppDatabase.Schema, context, "app.db")
+    return AppDatabase(driver)
+}
+```
+
+#### iOS (`iosMain`):
+```kotlin
+import com.example.database.AppDatabase
+import com.squareup.sqldelight.native.NativeSqliteDriver
+
+fun createDatabase(): AppDatabase {
+    val driver = NativeSqliteDriver(AppDatabase.Schema, "app.db")
+    return AppDatabase(driver)
+}
+```
+
+---
+
+### 5. **Use the Database in Common Code**
+You can now use the database in the `commonMain` module:
+
+```kotlin
+class UserRepository(private val database: AppDatabase) {
+    fun getAllUsers(): List<User> {
+        return database.userQueries.selectAllUsers().executeAsList()
+    }
+
+    fun insertUser(id: Long, name: String) {
+        database.userQueries.insertUser(id, name)
+    }
+}
+```
+
+---
+
+This approach allows you to share database logic across platforms while using platform-specific drivers for database access.
+
+## 10. How do you handle Networking (API calls) in Kotlin Multiplatform?
+
+Ans: In Kotlin Multiplatform (KMP), networking is typically handled using **Ktor**, a multiplatform networking library. Ktor provides a client that works across platforms, allowing you to write shared code for making API calls.
+
+### Steps to Handle Networking in KMP:
+
+---
+
+### 1. **Add Dependencies**
+Add the Ktor client dependencies to your `build.gradle.kts` file:
+
+```kotlin
+kotlin {
+    jvm()
+    ios()
+    sourceSets {
+        val commonMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-core:2.3.4")
+                implementation("io.ktor:ktor-client-content-negotiation:2.3.4")
+                implementation("io.ktor:ktor-serialization-kotlinx-json:2.3.4")
+            }
+        }
+        val androidMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-okhttp:2.3.4")
+            }
+        }
+        val iosMain by getting {
+            dependencies {
+                implementation("io.ktor:ktor-client-darwin:2.3.4")
+            }
+        }
+    }
+}
+```
+
+---
+
+### 2. **Create a Shared API Client**
+Define a shared API client in the `commonMain` module:
+
+```kotlin
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.kotlinx.json.*
+import kotlinx.serialization.Serializable
+
+class ApiClient {
+    private val client = HttpClient {
+        install(ContentNegotiation) {
+            json()
+        }
+    }
+
+    suspend fun getExampleData(): ExampleResponse {
+        val response: HttpResponse = client.get("https://api.example.com/data")
+        return response.body()
+    }
+}
+
+@Serializable
+data class ExampleResponse(
+    val id: Int,
+    val name: String
+)
+```
+
+---
+
+### 3. **Initialize Platform-Specific Clients**
+Ktor uses platform-specific engines. For example:
+- **Android**: `OkHttp`
+- **iOS**: `Darwin`
+
+These engines are automatically selected based on the platform-specific dependencies added earlier.
+
+---
+
+### 4. **Use the API Client in Shared Code**
+You can now use the `ApiClient` in your shared code:
+
+```kotlin
+class ExampleRepository(private val apiClient: ApiClient) {
+    suspend fun fetchData(): ExampleResponse {
+        return apiClient.getExampleData()
+    }
+}
+```
+
+---
+
+This approach allows you to write shared networking logic while leveraging Ktor's multiplatform capabilities.
